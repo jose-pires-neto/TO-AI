@@ -5,13 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Google Tarefas AI</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts: Outfit for a modern tech vibe -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Google Identity Services -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="style.css">
 
@@ -19,9 +15,7 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
                     colors: {
                         google: {
                             blue: '#4285F4',
@@ -40,8 +34,11 @@
 <body
     class="h-screen w-full flex flex-col overflow-hidden text-slate-800 selection:bg-google-blue selection:text-white">
 
-    <!-- Header Fixo (Glassmorphism) -->
-    <header class="glass px-5 py-4 z-20 flex justify-between items-center shrink-0 sticky top-0">
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- HEADER                                              -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <header
+        class="glass px-5 py-4 z-20 flex justify-between items-center shrink-0 sticky top-0 border-b border-slate-100/60">
         <div class="flex items-center gap-3">
             <div
                 class="w-9 h-9 rounded-full bg-gradient-to-tr from-google-blue to-indigo-400 flex items-center justify-center text-white shadow-md">
@@ -61,23 +58,57 @@
         </div>
     </header>
 
-    <!-- Main Content Area -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- MAIN                                                -->
+    <!-- ═══════════════════════════════════════════════════ -->
     <main class="flex-1 overflow-hidden relative">
 
-        <!-- View: TAREFAS -->
+        <!-- ─── View: TAREFAS ─────────────────────────────── -->
         <section id="viewTasks" class="absolute inset-0 overflow-y-auto scrollbar-hide pb-28">
 
-            <div class="p-5 pb-2">
-                <div class="mb-4">
-                    <h2 class="text-[28px] font-bold text-slate-800 leading-tight">Olá, <br><span
-                            class="text-slate-500 font-medium text-xl" id="currentDateDisplay"></span></h2>
+            <div class="p-5 pb-0">
+
+                <!-- Greeting -->
+                <div class="mb-5">
+                    <h2 class="text-[28px] font-bold text-slate-800 leading-tight">Olá,
+                        <br><span class="text-slate-500 font-medium text-xl" id="currentDateDisplay"></span>
+                    </h2>
                 </div>
 
-                <!-- Magic Add Input -->
-                <div class="relative w-full group mb-6">
+                <!-- Progress Ring + Auto-Organize -->
+                <div class="flex items-center gap-4 mb-5 bg-white rounded-3xl p-4 border border-slate-100 shadow-sm">
+                    <!-- SVG Ring -->
+                    <div class="relative w-16 h-16 shrink-0">
+                        <svg viewBox="0 0 36 36" class="w-16 h-16 -rotate-90">
+                            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#f1f5f9" stroke-width="3.5" />
+                            <circle id="progressRing" cx="18" cy="18" r="15.9155" fill="none" stroke="#4285F4"
+                                stroke-width="3.5" stroke-dasharray="0 100" stroke-linecap="round"
+                                style="transition: stroke-dasharray 0.7s cubic-bezier(.4,0,.2,1)" />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span id="progressPct" class="text-[12px] font-black text-google-blue">0%</span>
+                        </div>
+                    </div>
+                    <!-- Stats + Button -->
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm text-slate-500 mb-2">
+                            <span id="pendingCount" class="text-slate-800 font-bold">0</span> pendentes ·
+                            <span id="completedTodayCount" class="text-google-green font-bold">0</span> concluídas
+                        </p>
+                        <button onclick="autoOrganizeDay()" id="autoOrganizeBtn"
+                            class="inline-flex items-center gap-2 bg-gradient-to-r from-google-blue to-indigo-500 text-white text-xs font-bold px-3.5 py-2 rounded-full shadow-md shadow-blue-500/20 hover:shadow-blue-500/40 active:scale-95 transition-all disabled:opacity-50">
+                            <i class="fas fa-wand-magic-sparkles text-[11px]"></i>
+                            <span>Auto-Organizar Dia</span>
+                            <i id="autoOrganizeLoader" class="fas fa-circle-notch fa-spin text-[11px] hidden"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Magic Add -->
+                <div class="relative w-full group mb-4">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <i
-                            class="fas fa-sparkles text-google-blue transition-transform group-focus-within:scale-110"></i>
+                            class="fas fa-wand-magic-sparkles text-google-blue transition-transform group-focus-within:scale-110"></i>
                     </div>
                     <input type="text" id="magicAddInput" placeholder="Adição Mágica (ex: Pagar luz amanhã)"
                         class="w-full bg-white border border-slate-200 text-slate-800 text-sm rounded-2xl focus:ring-4 focus:ring-google-blue/10 focus:border-google-blue block pl-10 p-3.5 shadow-sm transition-all outline-none placeholder-slate-400">
@@ -85,65 +116,94 @@
                         class="absolute inset-y-0 right-1 my-1 px-3 bg-google-blue hover:bg-blue-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center">
                         <i class="fas fa-arrow-up"></i>
                     </button>
-                    <!-- Loading indicator for magic add -->
                     <div id="magicAddLoading" class="absolute inset-y-0 right-2 flex items-center hidden">
                         <i class="fas fa-circle-notch fa-spin text-google-blue"></i>
                     </div>
                 </div>
+
+                <!-- Filter Tabs -->
+                <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-2 mb-2 -mx-1 px-1">
+                    <button onclick="setFilter('all')" data-filter="all"
+                        class="filter-btn shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-slate-800 text-white border border-slate-800">
+                        Todas
+                    </button>
+                    <button onclick="setFilter('Trabalho')" data-filter="Trabalho"
+                        class="filter-btn shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white border border-slate-200 text-slate-600">
+                        💼 Trabalho
+                    </button>
+                    <button onclick="setFilter('Pessoal')" data-filter="Pessoal"
+                        class="filter-btn shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white border border-slate-200 text-slate-600">
+                        🏠 Pessoal
+                    </button>
+                    <button onclick="setFilter('Compras')" data-filter="Compras"
+                        class="filter-btn shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white border border-slate-200 text-slate-600">
+                        🛒 Compras
+                    </button>
+                    <button onclick="setFilter('Geral')" data-filter="Geral"
+                        class="filter-btn shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white border border-slate-200 text-slate-600">
+                        📌 Geral
+                    </button>
+                </div>
             </div>
 
-            <!-- Listas -->
-            <div class="px-5 space-y-6">
+            <!-- Task Lists -->
+            <div class="px-5 pt-3 space-y-6">
 
-                <!-- Pending Tasks -->
+                <!-- Pending -->
                 <div>
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 ml-1">Pendentes</h3>
-                    <div id="taskList" class="space-y-3">
-                        <!-- Tarefas renderizadas aqui -->
-                    </div>
+                    <h3
+                        class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 ml-1 flex items-center gap-2">
+                        Pendentes
+                        <span id="pendingBadge"
+                            class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full text-[10px] font-black">0</span>
+                    </h3>
+                    <div id="taskList" class="space-y-3"></div>
                 </div>
 
-                <!-- Completed Tasks (Collapsible) -->
+                <!-- Completed (Collapsible) -->
                 <div id="completedTasksContainer" class="hidden">
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 ml-1 flex justify-between items-center cursor-pointer"
                         onclick="toggleCompleted()">
-                        <span>Concluídas (<span id="completedCount">0</span>)</span>
-                        <i class="fas fa-chevron-down transition-transform" id="completedIcon"></i>
+                        <span class="flex items-center gap-2">
+                            Concluídas
+                            <span
+                                class="bg-google-green/10 text-google-green px-2 py-0.5 rounded-full text-[10px] font-black">
+                                <span id="completedCount">0</span>
+                            </span>
+                        </span>
+                        <i class="fas fa-chevron-down transition-transform duration-300" id="completedIcon"></i>
                     </h3>
-                    <div id="completedTaskList" class="space-y-3 hidden">
-                        <!-- Concluídas aqui -->
-                    </div>
+                    <div id="completedTaskList" class="space-y-3 hidden"></div>
                 </div>
-
             </div>
 
             <!-- Empty State -->
-            <div id="emptyTasks" class="hidden flex-col items-center justify-center h-48 text-center mt-10">
+            <div id="emptyTasks" class="hidden flex-col items-center justify-center h-48 text-center mt-10 px-5">
                 <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 relative">
                     <i class="fas fa-check-circle text-3xl text-google-blue relative z-10"></i>
                     <div class="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-20"></div>
                 </div>
                 <p class="text-slate-800 font-bold text-lg">Tudo em dia!</p>
-                <p class="text-sm text-slate-500 mt-1 max-w-[250px]">Aproveite o seu tempo livre ou adicione novas
-                    tarefas usando a IA.</p>
+                <p class="text-sm text-slate-500 mt-1 max-w-[250px]" id="emptyStateMsg">Adicione novas tarefas usando a
+                    IA.</p>
             </div>
 
-            <!-- FAB (Floating Action Button) -->
+            <!-- FAB -->
             <button onclick="openTaskModal()"
                 class="fixed bottom-20 right-5 w-14 h-14 bg-slate-800 text-white rounded-2xl shadow-xl shadow-slate-300 flex items-center justify-center text-xl hover:bg-slate-900 active:scale-90 transition-all z-10">
                 <i class="fas fa-plus"></i>
             </button>
         </section>
 
-        <!-- View: ASSISTENTE IA -->
+        <!-- ─── View: ASSISTENTE IA ────────────────────────── -->
         <section id="viewAI" class="absolute inset-0 bg-google-surface hidden flex-col pb-[72px]">
             <div class="bg-white px-5 py-4 border-b border-slate-100 flex items-center gap-3 shrink-0">
                 <div
                     class="w-10 h-10 rounded-full bg-gradient-to-r from-google-blue to-purple-500 flex items-center justify-center text-white">
-                    <i class="fas fa-sparkles"></i>
+                    <i class="fas fa-wand-magic-sparkles"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-slate-800">Assistente Gemini</h3>
+                    <h3 class="font-bold text-slate-800">Assistente IA</h3>
                     <p class="text-xs text-slate-500">Sua secretária inteligente</p>
                 </div>
             </div>
@@ -152,14 +212,13 @@
                 <div class="flex w-full mb-4 justify-start">
                     <div
                         class="chat-bubble bg-white border border-slate-200 text-slate-700 rounded-2xl rounded-tl-sm p-4 shadow-sm text-sm">
-                        Olá! Sou sua assistente. Posso anotar tarefas, criar listas ou organizar seu dia. Ex: <br><br>
-                        <i class="text-slate-500">"Lembre-me de comprar leite amanhã de manhã"</i> ou <br>
-                        <i class="text-slate-500">"Crie uma lista de tarefas para a viagem de sexta"</i>.
+                        Olá! Sou sua assistente. Posso anotar tarefas, criar listas ou organizar seu dia. Ex:<br><br>
+                        <i class="text-slate-500">"Lembre-me de comprar leite amanhã de manhã"</i> ou<br>
+                        <i class="text-slate-500">"Planeje minha semana de estudos para a prova"</i>.
                     </div>
                 </div>
             </div>
 
-            <!-- Input Area do Chat -->
             <div class="glass border-t border-slate-200 p-3 shrink-0 z-10 pb-safe">
                 <form id="chatForm"
                     class="flex gap-2 items-center bg-white p-1 rounded-full border border-slate-200 shadow-sm focus-within:ring-2 focus-within:ring-google-blue/20 focus-within:border-google-blue transition-all">
@@ -173,7 +232,7 @@
             </div>
         </section>
 
-        <!-- View: CONFIGURAÇÕES -->
+        <!-- ─── View: CONFIGURAÇÕES ───────────────────────── -->
         <section id="viewSettings" class="absolute inset-0 overflow-y-auto p-5 pb-28 hidden bg-google-surface">
 
             <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-6">
@@ -190,7 +249,7 @@
             </div>
 
             <div class="space-y-4">
-                <!-- Chave da API Groq -->
+                <!-- Groq API -->
                 <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
@@ -207,7 +266,7 @@
                             class="text-purple-600 font-semibold hover:underline">console.groq.com</a></p>
                 </div>
 
-                <!-- Google Drive Backup -->
+                <!-- Google Drive -->
                 <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
                     <div class="flex items-center gap-3 mb-4">
                         <div
@@ -220,7 +279,6 @@
                         ID</label>
                     <input type="text" id="googleClientIdInput" placeholder="Ex: 123...apps.googleusercontent.com"
                         class="w-full rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none mb-4 transition-all">
-
                     <div class="flex flex-col gap-2">
                         <button onclick="backupToDrive()"
                             class="w-full bg-slate-800 text-white py-3 rounded-xl text-sm font-semibold hover:bg-slate-900 active:scale-95 transition flex items-center justify-center gap-2">
@@ -242,7 +300,9 @@
 
     </main>
 
-    <!-- Bottom Navigation Bar (Glassmorphism) -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- BOTTOM NAV                                          -->
+    <!-- ═══════════════════════════════════════════════════ -->
     <nav
         class="glass border-t border-slate-200/60 flex justify-around items-center px-2 py-1 pb-safe fixed bottom-0 w-full z-30">
         <button onclick="switchTab('tasks')" id="tab-tasks"
@@ -255,7 +315,7 @@
         <button onclick="switchTab('ai')" id="tab-ai"
             class="nav-btn flex flex-col items-center gap-1 p-2 w-20 text-slate-400 hover:text-google-blue transition-all">
             <div class="px-4 py-1 rounded-full bg-blue-100/0 transition-colors nav-indicator mb-0.5">
-                <i class="fas fa-sparkles text-xl"></i>
+                <i class="fas fa-wand-magic-sparkles text-xl"></i>
             </div>
             <span class="text-[10px] font-semibold">Assistente</span>
         </button>
@@ -268,13 +328,16 @@
         </button>
     </nav>
 
-    <!-- Modal: Adicionar/Editar Tarefa (Estilo Material 3 Bottom Sheet) -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- MODAL: ADICIONAR / EDITAR TAREFA                    -->
+    <!-- ═══════════════════════════════════════════════════ -->
     <div id="taskModalOverlay"
         class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden flex-col justify-end transition-opacity opacity-0">
         <div id="taskModalContent"
-            class="bg-white w-full rounded-t-[32px] p-6 pb-safe transform translate-y-full transition-transform duration-300 shadow-2xl">
+            class="bg-white w-full rounded-t-[32px] p-6 pb-safe transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[90vh] overflow-y-auto scrollbar-hide">
 
-            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div> <!-- Handle bar -->
+            <!-- Handle bar -->
+            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div>
 
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-2xl font-bold text-slate-800" id="modalTitle">Nova Tarefa</h3>
@@ -284,24 +347,29 @@
                 </button>
             </div>
 
-            <form id="manualTaskForm" class="space-y-5">
+            <form id="manualTaskForm" class="space-y-4">
                 <input type="hidden" id="taskIdInput">
+
+                <!-- Title -->
                 <div>
                     <input type="text" id="taskTitleInput" placeholder="O que fazer?" required
                         class="w-full text-xl font-medium border-b-2 border-slate-100 py-2 focus:outline-none focus:border-google-blue placeholder-slate-300 bg-transparent transition-colors">
                 </div>
 
+                <!-- Date + Category -->
                 <div class="flex gap-3">
                     <div
                         class="flex-1 bg-slate-50 p-4 rounded-2xl border border-slate-100 focus-within:border-google-blue/30 focus-within:bg-blue-50/30 transition-colors">
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1"><i
-                                class="far fa-calendar text-google-blue"></i> Data / Hora</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                            <i class="far fa-calendar text-google-blue"></i> Data / Hora
+                        </label>
                         <input type="datetime-local" id="taskDateInput"
                             class="w-full bg-transparent text-sm focus:outline-none text-slate-800 font-medium">
                     </div>
                     <div class="flex-1 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1"><i
-                                class="fas fa-tag text-purple-500"></i> Categoria</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                            <i class="fas fa-tag text-purple-500"></i> Categoria
+                        </label>
                         <select id="taskCategoryInput"
                             class="w-full bg-transparent text-sm focus:outline-none text-slate-800 font-medium appearance-none">
                             <option value="Geral">Geral</option>
@@ -312,9 +380,49 @@
                     </div>
                 </div>
 
+                <!-- Energy Level -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
+                        <i class="fas fa-bolt text-amber-500"></i> Nível de Energia
+                    </label>
+                    <input type="hidden" id="taskEnergyInput" value="">
+                    <div class="flex gap-2">
+                        <button type="button" onclick="selectEnergy('Baixa')" data-energy="Baixa"
+                            class="energy-btn flex-1 py-2 rounded-xl text-xs font-bold border-2 border-slate-200 text-slate-500 bg-white transition-all">
+                            🔋 Baixa
+                        </button>
+                        <button type="button" onclick="selectEnergy('Média')" data-energy="Média"
+                            class="energy-btn flex-1 py-2 rounded-xl text-xs font-bold border-2 border-slate-200 text-slate-500 bg-white transition-all">
+                            ⚡ Média
+                        </button>
+                        <button type="button" onclick="selectEnergy('Alta')" data-energy="Alta"
+                            class="energy-btn flex-1 py-2 rounded-xl text-xs font-bold border-2 border-slate-200 text-slate-500 bg-white transition-all">
+                            🔥 Alta
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Description -->
                 <div>
-                    <textarea id="taskDescInput" placeholder="Adicionar detalhes (opcional)" rows="3"
+                    <textarea id="taskDescInput" placeholder="Adicionar detalhes (opcional)" rows="2"
                         class="w-full bg-slate-50 rounded-2xl border border-slate-100 p-4 text-sm focus:outline-none focus:ring-2 focus:ring-google-blue/20 focus:border-google-blue text-slate-700 resize-none transition-all"></textarea>
+                </div>
+
+                <!-- Subtarefas -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            <i class="fas fa-list-ul text-google-blue"></i> Subtarefas
+                        </label>
+                        <button type="button" onclick="addModalSubtask()"
+                            class="text-xs font-bold text-google-blue hover:text-blue-700 flex items-center gap-1 active:scale-95 transition-all">
+                            <i class="fas fa-plus text-[10px]"></i> Adicionar
+                        </button>
+                    </div>
+                    <div id="modalSubtaskList" class="space-y-2"></div>
+                    <p id="noSubtasksHint" class="text-xs text-slate-400 text-center py-1">
+                        Nenhuma subtarefa. A IA pode gerar automaticamente.
+                    </p>
                 </div>
 
                 <button type="submit"
@@ -325,13 +433,15 @@
         </div>
     </div>
 
-    <!-- Toast de Notificação -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- TOAST                                               -->
+    <!-- ═══════════════════════════════════════════════════ -->
     <div id="toast"
         class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-slate-800/90 backdrop-blur-md text-white px-6 py-3.5 rounded-full shadow-xl opacity-0 transition-all duration-400 pointer-events-none z-50 text-sm font-semibold flex items-center gap-3">
-        <i class="fas fa-check-circle text-green-400 text-lg"></i> <span id="toastMsg">Mensagem</span>
+        <i class="fas fa-check-circle text-green-400 text-lg"></i>
+        <span id="toastMsg">Mensagem</span>
     </div>
 
-    <!-- Entry point modular. Todos os módulos são importados via js/main.js -->
     <script type="module" src="js/main.js"></script>
 </body>
 

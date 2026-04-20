@@ -19,7 +19,7 @@ body {
     -webkit-backdrop-filter: blur(12px);
 }
 
-/* Animations */
+/* Bottom sheet animations */
 .bottom-sheet-enter {
     animation: slideUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
@@ -48,7 +48,7 @@ body {
     }
 }
 
-/* Checkbox pop animation */
+/* Checkbox pop */
 .check-pop {
     animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -67,6 +67,7 @@ body {
     }
 }
 
+/* Chat */
 .chat-bubble {
     max-width: 85%;
     word-wrap: break-word;
@@ -76,7 +77,7 @@ body {
     padding-bottom: env(safe-area-inset-bottom, 1.5rem);
 }
 
-/* Shimmer effect for loading */
+/* Shimmer */
 .shimmer {
     background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
     background-size: 200% 100%;
@@ -91,4 +92,116 @@ body {
     100% {
         background-position: -200% 0;
     }
+}
+
+/* ─── Filter tabs ───────────────────────────────────────── */
+.filter-btn {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-btn:active {
+    transform: scale(0.95);
+}
+
+/* ─── Task card category accent bar ────────────────────── */
+.task-accent {
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 4px;
+    border-radius: 0 4px 4px 0;
+}
+
+/* ─── Energy level badge ────────────────────────────────── */
+.energy-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+.energy-low {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.energy-mid {
+    background: #fffbeb;
+    color: #d97706;
+}
+
+.energy-high {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+/* ─── Energy button selected states ────────────────────── */
+.energy-btn.selected-low {
+    border-color: #34d399 !important;
+    background: #ecfdf5 !important;
+    color: #059669 !important;
+}
+
+.energy-btn.selected-mid {
+    border-color: #fbbf24 !important;
+    background: #fffbeb !important;
+    color: #d97706 !important;
+}
+
+.energy-btn.selected-high {
+    border-color: #f87171 !important;
+    background: #fef2f2 !important;
+    color: #dc2626 !important;
+}
+
+/* ─── Subtask rows ──────────────────────────────────────── */
+.subtask-row {
+    animation: subtaskFadeIn 0.2s ease forwards;
+}
+
+@keyframes subtaskFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ─── Subtask progress bar ──────────────────────────────── */
+.subtask-progress-bar {
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Task card item fade in ────────────────────────────── */
+.task-card-enter {
+    animation: taskFadeIn 0.25s ease forwards;
+}
+
+@keyframes taskFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ─── Subtask toggle in task card ───────────────────────── */
+.subtask-list-collapsed {
+    display: none;
+}
+
+.subtask-list-expanded {
+    display: block;
 }

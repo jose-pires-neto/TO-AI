@@ -4,7 +4,7 @@
  * OCP: Para trocar de Groq para outro provider, altere apenas a função fetchGroq().
  */
 
-import { AI_SYSTEM_PROMPT } from './config.js';
+import { AI_SYSTEM_PROMPT, AI_AUTO_ORGANIZE_PROMPT } from './config.js';
 import { saveTaskDB, getTasksDB } from './db.js';
 import { setTasks, showToast } from './ui.js';
 import { switchTab } from './app.js';
@@ -26,15 +26,15 @@ export async function fetchGroq(messages) {
     if (!apiKey) throw new Error('Chave da API não configurada. Vá em Ajustes.');
 
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method:  'POST',
+        method: 'POST',
         headers: {
             'Authorization': `Bearer ${apiKey}`,
-            'Content-Type':  'application/json',
+            'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            model:           'llama-3.1-8b-instant',
+            model: 'llama-3.1-8b-instant',
             messages,
-            temperature:     0.1,
+            temperature: 0.2,
             response_format: { type: 'json_object' },
         }),
     });
@@ -51,15 +51,16 @@ export async function fetchGroq(messages) {
 // ---------------------------------------------------------------------------
 
 async function processMagicAdd() {
-    const input  = document.getElementById('magicAddInput');
-    const text   = input.value.trim();
+    const input = document.getElementById('magicAddInput');
+    const text = input.value.trim();
     if (!text) return;
 
-    // Fallback offline: sem API key, cria tarefa simples
+    // Fallback offline
     if (!localStorage.getItem('groqApiKey')) {
         const newTask = {
             id: Date.now().toString(), title: text, description: '',
-            dueDate: null, category: 'Geral', completed: false, createdAt: Date.now(),
+            dueDate: null, category: 'Geral', completed: false,
+            subtasks: [], energyLevel: null, createdAt: Date.now(),
         };
         await saveTaskDB(newTask);
         const updated = await getTasksDB();
@@ -70,7 +71,7 @@ async function processMagicAdd() {
     }
 
     const loader = document.getElementById('magicAddLoading');
-    const btn    = document.getElementById('magicAddBtn');
+    const btn = document.getElementById('magicAddBtn');
 
     input.disabled = true;
     btn.classList.add('hidden');
@@ -79,28 +80,28 @@ async function processMagicAdd() {
     try {
         const prompt = [
             { role: 'system', content: AI_SYSTEM_PROMPT },
-            { role: 'user',   content: `Crie a tarefa baseada nisto: "${text}". Mantenha respostaTexto vazio.` },
+            { role: 'user', content: `Crie a tarefa baseada nisto: "${text}". Mantenha respostaTexto vazio.` },
         ];
-        const data   = await fetchGroq(prompt);
+        const data = await fetchGroq(prompt);
         const result = JSON.parse(data.choices[0].message.content);
 
         if (result.tarefasParaCriar?.length > 0) {
             for (const t of result.tarefasParaCriar) {
                 await saveTaskDB({
-                    id:          Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                    title:       t.title,
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                    title: t.title,
                     description: t.description || '',
-                    dueDate:     t.dueDate     || null,
-                    category:    t.category    || 'Geral',
-                    subtasks:    t.subtasks    || [],
+                    dueDate: t.dueDate || null,
+                    category: t.category || 'Geral',
+                    subtasks: t.subtasks || [],
                     energyLevel: t.energyLevel || null,
-                    completed:   false,
-                    createdAt:   Date.now(),
+                    completed: false,
+                    createdAt: Date.now(),
                 });
             }
             const updated = await getTasksDB();
             setTasks(updated);
-            showToast(`✨ Adição Mágica: ${result.tarefasParaCriar.length} tarefa(s) criada(s)`);
+            showToast(`✨ ${result.tarefasParaCriar.length} tarefa(s) criada(s)`);
         }
         input.value = '';
     } catch (error) {
@@ -114,33 +115,105 @@ async function processMagicAdd() {
 }
 
 // ---------------------------------------------------------------------------
-// Fluxo 2: Chat Assistant
+// Fluxo 2: Auto-Organizar Meu Dia
+// ---------------------------------------------------------------------------
+
+/**
+ * Envia todas as tarefas pendentes para a IA e enriquece com
+ * energyLevel e subtasks. Atualiza cada tarefa no banco.
+ */
+export async function autoOrganizeDay() {
+    if (!localStorage.getItem('groqApiKey')) {
+        showToast('Configure a API Key da Groq em Ajustes primeiro.');
+        setTimeout(() => switchTab('settings'), 2000);
+        return;
+    }
+
+    const allTasks = await getTasksDB();
+    const pendingTasks = allTasks.filter(t => !t.completed);
+
+    if (pendingTasks.length === 0) {
+        showToast('Nenhuma tarefa pendente para organizar! 🎉');
+        return;
+    }
+
+    const btn = document.getElementById('autoOrganizeBtn');
+    const loader = document.getElementById('autoOrganizeLoader');
+    if (btn) btn.disabled = true;
+    if (loader) loader.classList.remove('hidden');
+
+    try {
+        // Envia somente os campos necessários para economizar tokens
+        const tasksForAI = pendingTasks.map(t => ({
+            id: t.id,
+            title: t.title,
+            description: t.description || '',
+            category: t.category,
+            dueDate: t.dueDate,
+        }));
+
+        const prompt = [
+            { role: 'system', content: AI_AUTO_ORGANIZE_PROMPT },
+            { role: 'user', content: `Minhas tarefas pendentes: ${JSON.stringify(tasksForAI)}` },
+        ];
+
+        const data = await fetchGroq(prompt);
+        const result = JSON.parse(data.choices[0].message.content);
+
+        if (result.tarefasAtualizadas?.length > 0) {
+            let updatedCount = 0;
+            for (const updated of result.tarefasAtualizadas) {
+                const existing = pendingTasks.find(t => t.id === updated.id);
+                if (!existing) continue;
+
+                await saveTaskDB({
+                    ...existing,
+                    energyLevel: updated.energyLevel || existing.energyLevel || null,
+                    subtasks: (updated.subtasks?.length > 0)
+                        ? updated.subtasks
+                        : (existing.subtasks || []),
+                });
+                updatedCount++;
+            }
+
+            const final = await getTasksDB();
+            setTasks(final);
+            showToast(`✨ ${result.respostaTexto || `${updatedCount} tarefa(s) organizadas!`}`);
+        } else {
+            showToast('IA respondeu, mas sem atualizações para aplicar.');
+        }
+    } catch (error) {
+        showToast(`Erro ao organizar: ${error.message}`);
+    } finally {
+        if (btn) btn.disabled = false;
+        if (loader) loader.classList.add('hidden');
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Fluxo 3: Chat Assistant
 // ---------------------------------------------------------------------------
 
 /**
  * Cria e insere uma bolha de chat no DOM.
- * @param {string} sender
- * @param {string} text
- * @param {'user'|'ai'|'system_ui'|'error'} type
- * @param {string|null} id
  */
 export function appendChatUI(sender, text, type, id = null) {
     const chatBox = document.getElementById('chatBox');
-    const div     = document.createElement('div');
+    const div = document.createElement('div');
     if (id) div.id = id;
 
     div.className = 'flex w-full mb-4';
-    const bubble  = document.createElement('div');
+    const bubble = document.createElement('div');
     bubble.className = 'chat-bubble text-[15px] p-4 shadow-sm';
 
     if (type === 'user') {
         div.classList.add('justify-end');
         bubble.className += ' bg-google-blue text-white rounded-[20px] rounded-tr-[4px]';
-        bubble.innerHTML  = text;
+        bubble.innerHTML = text;
     } else if (type === 'ai') {
         div.classList.add('justify-start');
         bubble.className += ' bg-white border border-slate-100 text-slate-700 rounded-[20px] rounded-tl-[4px]';
-        bubble.innerHTML  = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+        bubble.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
     } else if (type === 'system_ui') {
         div.classList.add('justify-center');
         div.innerHTML = `<div class="w-full px-8 text-sm">${text}</div>`;
@@ -159,12 +232,9 @@ export function appendChatUI(sender, text, type, id = null) {
 }
 
 // ---------------------------------------------------------------------------
-// Setup: registra event listeners (chamado UMA VEZ pelo main.js)
+// Setup
 // ---------------------------------------------------------------------------
 
-/**
- * Inicializa os event listeners do Magic Add.
- */
 export function setupMagicAdd() {
     document.getElementById('magicAddBtn').addEventListener('click', processMagicAdd);
     document.getElementById('magicAddInput').addEventListener('keypress', (e) => {
@@ -172,15 +242,12 @@ export function setupMagicAdd() {
     });
 }
 
-/**
- * Inicializa o event listener do formulário de chat.
- */
 export function setupChat() {
     document.getElementById('chatForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const input = document.getElementById('chatInput');
-        const text  = input.value.trim();
+        const text = input.value.trim();
         if (!text) return;
         input.value = '';
         input.blur();
@@ -196,11 +263,11 @@ export function setupChat() {
 
         const loaderId = 'loader-' + Date.now();
         appendChatUI('Assistente',
-            '<div class="flex gap-1"><div class="w-2 h-2 bg-google-blue rounded-full animate-bounce"></div><div class="w-2 h-2 bg-google-red rounded-full animate-bounce" style="animation-delay: 0.1s"></div><div class="w-2 h-2 bg-google-yellow rounded-full animate-bounce" style="animation-delay: 0.2s"></div></div>',
+            '<div class="flex gap-1"><div class="w-2 h-2 bg-google-blue rounded-full animate-bounce"></div><div class="w-2 h-2 bg-google-red rounded-full animate-bounce" style="animation-delay:0.1s"></div><div class="w-2 h-2 bg-google-yellow rounded-full animate-bounce" style="animation-delay:0.2s"></div></div>',
             'ai', loaderId);
 
         try {
-            const data         = await fetchGroq(apiMessages);
+            const data = await fetchGroq(apiMessages);
             const replyContent = data.choices[0].message.content;
             apiMessages.push({ role: 'assistant', content: replyContent });
 
@@ -214,15 +281,15 @@ export function setupChat() {
             if (responseObj.tarefasParaCriar?.length > 0) {
                 for (const t of responseObj.tarefasParaCriar) {
                     await saveTaskDB({
-                        id:          Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                        title:       t.title,
+                        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                        title: t.title,
                         description: t.description || '',
-                        dueDate:     t.dueDate     || null,
-                        category:    t.category    || 'Geral',
-                        subtasks:    t.subtasks    || [],
+                        dueDate: t.dueDate || null,
+                        category: t.category || 'Geral',
+                        subtasks: t.subtasks || [],
                         energyLevel: t.energyLevel || null,
-                        completed:   false,
-                        createdAt:   Date.now(),
+                        completed: false,
+                        createdAt: Date.now(),
                     });
                 }
                 const updated = await getTasksDB();
