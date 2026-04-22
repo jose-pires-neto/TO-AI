@@ -9,6 +9,7 @@ import { openTaskModal, closeTaskModal, editTask, setupModal, addModalSubtask, c
 import { setupMagicAdd, setupChat, autoOrganizeDay, approveAIProposal, discardAIProposal, checkDailyBriefing } from './ai.js';
 import { switchTab, saveSettings } from './app.js';
 import { backupToDrive, restoreFromDrive } from './drive.js';
+import { playSuccessSound, initUX } from './ux.js';
 
 // Exposição global — funções acionadas por onclick no HTML
 window.switchTab = switchTab;
@@ -43,7 +44,15 @@ window.toggleTask = async (id, checkboxEl) => {
     const updated = await getTasksDB();
     setTasks(updated);
 
-    if (task.completed) showToast('Mandou bem! Tarefa concluída. ✅');
+    if (task.completed) {
+        showToast('Mandou bem! Tarefa concluída. ✅');
+        playSuccessSound();
+        
+        const pending = updated.filter(t => !t.completed);
+        if (pending.length === 0 && updated.length > 0) {
+            import('./ux.js').then(ux => ux.triggerConfetti());
+        }
+    }
 };
 
 window.deleteTask = async (id) => {
@@ -87,6 +96,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     setupModal();
     setupMagicAdd();
     setupChat();
+    initUX();
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW Error:', err));
+    }
 
     // NOVO: Chama a triagem diária no carregamento (se não foi feita hoje)
     setTimeout(() => {
