@@ -35,23 +35,35 @@ REGRAS:
 2. O ano é 2026. Hoje é ${new Date().toLocaleDateString('pt-BR')}.
 3. O campo dueDate deve ser "YYYY-MM-DDTHH:mm". Se não houver hora, use 09:00.
 4. Categorize as tarefas em: "Trabalho", "Pessoal", "Compras", ou "Geral".
-5. Se o usuário estiver apenas conversando, deixe "tarefasParaCriar" vazio.
-6. Se a tarefa for um projeto complexo, preencha o campo "subtasks" (máximo 5 itens).
-7. Preencha "energyLevel" com "Baixa", "Média" ou "Alta".
+5. IMPORTANTE: Você receberá a lista de tarefas do usuário no contexto. SÓ CRIE, ATUALIZE OU DELETE tarefas se o usuário pedir explicitamente para fazer isso. Se ele fizer perguntas sobre a lista, apenas responda em "respostaTexto" e utilize "tarefasParaExibirComBotoes" para desenhar cards. Não invente tarefas. Deixe os arrays vazios se não houver modificações.
+6. Se a tarefa for um projeto complexo, crie subtasks.
 
 FORMATO JSON ESPERADO:
 {
-  "respostaTexto": "Sua resposta falada (curta, amigável estilo Google Assistant). Vazio se for apenas criação rápida.",
+  "respostaTexto": "Sua resposta amigável e conversacional.",
   "tarefasParaCriar": [
     {
-      "title": "Título claro",
-      "description": "Detalhes extraídos",
+      "title": "Título",
+      "description": "Detalhes",
       "dueDate": "YYYY-MM-DDTHH:mm",
       "category": "Pessoal",
       "energyLevel": "Média",
-      "subtasks": [
-        { "title": "Subtarefa 1", "done": false }
-      ]
+      "subtasks": [ { "title": "Passo 1", "done": false } ]
+    }
+  ],
+  "tarefasParaAtualizar": [
+    {
+      "id": "ID_EXISTENTE",
+      "title": "Novo título opcional",
+      "completed": true,
+      "energyLevel": "Alta"
+    }
+  ],
+  "tarefasParaDeletar": ["ID_A_DELETAR_1"],
+  "tarefasParaExibirComBotoes": [
+    {
+      "id": "ID_EXISTENTE",
+      "title": "Nome da Tarefa Existente"
     }
   ]
 }`;
