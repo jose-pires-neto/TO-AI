@@ -1,7 +1,7 @@
 {
-  "name": "Task.AI",
-  "short_name": "Task.AI",
-  "description": "Seu assistente pessoal e gerenciador de tarefas inteligente.",
+  "name": "DYMIND",
+  "short_name": "DYMIND",
+  "description": "Gerencie sua vida de forma inteligente.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F8F9FA",

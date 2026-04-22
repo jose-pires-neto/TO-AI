@@ -37,7 +37,7 @@ export function switchTab(tabId) {
     // Exibe a view correspondente
     if (tabId === 'tasks') {
         document.getElementById('viewTasks').classList.remove('hidden');
-        document.getElementById('headerTitle').textContent = 'TASK.AI';
+        document.getElementById('headerTitle').textContent = 'DYMIND';
 
     } else if (tabId === 'ai') {
         const viewAI = document.getElementById('viewAI');
