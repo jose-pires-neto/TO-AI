@@ -10,11 +10,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="style.css">
-    
+
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4285F4">
     <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- SortableJS para Drag and Drop fluido (Mobile & Desktop) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -326,6 +329,80 @@
             </div>
         </section>
 
+        <!-- ─── View: MÉTRICAS / ESTATÍSTICAS ───────────────── -->
+        <section id="viewMetrics" class="absolute inset-0 overflow-y-auto p-5 pb-28 hidden bg-google-surface">
+
+            <div class="mb-5">
+                <h2 class="text-[28px] font-bold text-slate-800 leading-tight">
+                    <span class="text-slate-500 font-medium text-xl">Sua Produtividade</span>
+                </h2>
+            </div>
+
+            <!-- Resumo Semanal/Diário -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Hoje</span>
+                    <span id="statsCompletedToday" class="text-3xl font-black text-google-green">0</span>
+                    <span class="text-xs text-slate-500 mt-1">tarefas concluídas</span>
+                </div>
+                <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Pendente</span>
+                    <span id="statsPendingNow" class="text-3xl font-black text-slate-700">0</span>
+                    <span class="text-xs text-slate-500 mt-1">tarefas abertas</span>
+                </div>
+            </div>
+
+            <!-- Esforço / Energia -->
+            <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm mb-6">
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="fas fa-bolt text-amber-500"></i> Energia Gasta (Concluídas)
+                </h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
+                            <span>🔥 Alta Energia</span>
+                            <span id="statsHighCount">0</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                            <div id="statsHighBar"
+                                class="bg-red-500 h-full rounded-full transition-all duration-1000 w-0"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
+                            <span>⚡ Média Energia</span>
+                            <span id="statsMidCount">0</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                            <div id="statsMidBar"
+                                class="bg-amber-400 h-full rounded-full transition-all duration-1000 w-0"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
+                            <span>🔋 Baixa Energia</span>
+                            <span id="statsLowCount">0</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                            <div id="statsLowBar"
+                                class="bg-green-400 h-full rounded-full transition-all duration-1000 w-0"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categorias -->
+            <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="fas fa-chart-pie text-google-blue"></i> Por Categoria
+                </h3>
+                <div id="statsCategoriesList" class="space-y-3">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+
+        </section>
+
     </main>
 
     <!-- ═══════════════════════════════════════════════════ -->
@@ -347,6 +424,14 @@
             </div>
             <span class="text-[10px] font-semibold">Assistente</span>
         </button>
+        <button onclick="switchTab('metrics')" id="tab-metrics"
+            class="nav-btn flex flex-col items-center gap-1 p-2 w-20 text-slate-400 hover:text-google-blue transition-all">
+            <div class="px-4 py-1 rounded-full bg-blue-100/0 transition-colors nav-indicator mb-0.5">
+                <i class="fas fa-chart-simple text-xl"></i>
+            </div>
+            <span class="text-[10px] font-semibold">Métricas</span>
+        </button>
+
         <button onclick="switchTab('settings')" id="tab-settings"
             class="nav-btn flex flex-col items-center gap-1 p-2 w-20 text-slate-400 hover:text-google-blue transition-all">
             <div class="px-4 py-1 rounded-full bg-blue-100/0 transition-colors nav-indicator mb-0.5">

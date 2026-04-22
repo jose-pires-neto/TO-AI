@@ -57,8 +57,16 @@ export function getTasksDB() {
         const tx      = db.transaction([STORE_NAME], 'readonly');
         const store   = tx.objectStore(STORE_NAME);
         const request = store.getAll();
-        request.onsuccess = () =>
-            resolve(request.result.sort((a, b) => b.createdAt - a.createdAt));
+        request.onsuccess = () => {
+            const all = request.result || [];
+            all.sort((a, b) => {
+                // Se não tem order, geramos um fallback onde os mais novos ficam no topo
+                const orderA = a.order !== undefined ? a.order : Number.MAX_SAFE_INTEGER - a.createdAt;
+                const orderB = b.order !== undefined ? b.order : Number.MAX_SAFE_INTEGER - b.createdAt;
+                return orderA - orderB;
+            });
+            resolve(all);
+        };
         request.onerror = () => reject('Erro ao buscar tarefas');
     });
 }

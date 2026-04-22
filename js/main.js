@@ -39,6 +39,11 @@ window.toggleTask = async (id, checkboxEl) => {
     }
 
     task.completed = !task.completed;
+    if (task.completed) {
+        task.completedAt = Date.now();
+    } else {
+        delete task.completedAt;
+    }
     await saveTaskDB(task);
 
     const updated = await getTasksDB();
