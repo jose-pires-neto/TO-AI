@@ -5,7 +5,7 @@
 
 import { initDB, getTasksDB, saveTaskDB, deleteTaskDB } from './db.js';
 import { setTasks, setCurrentDate, toggleCompleted, showToast, setFilter } from './ui.js';
-import { openTaskModal, closeTaskModal, editTask, setupModal } from './modal.js';
+import { openTaskModal, closeTaskModal, editTask, setupModal, addModalSubtask, checkEmptySubtasks, selectEnergy } from './modal.js';
 import { setupMagicAdd, setupChat, autoOrganizeDay, approveAIProposal, discardAIProposal, checkDailyBriefing } from './ai.js';
 import { switchTab, saveSettings } from './app.js';
 import { backupToDrive, restoreFromDrive } from './drive.js';
@@ -23,6 +23,9 @@ window.autoOrganizeDay = autoOrganizeDay;
 window.setFilter = setFilter;
 window.approveAIProposal = approveAIProposal; // NOVA
 window.discardAIProposal = discardAIProposal; // NOVA
+window.addModalSubtask = addModalSubtask;
+window.checkEmptySubtasks = checkEmptySubtasks;
+window.selectEnergy = selectEnergy;
 
 window.toggleTask = async (id, checkboxEl) => {
     const { tasks } = await import('./ui.js');
