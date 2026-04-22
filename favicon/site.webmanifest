@@ -1,6 +1,6 @@
 {
-  "name": "TASK.AI",
-  "short_name": "TASK.AI",
+  "name": "DYMIND",
+  "short_name": "DYMIND",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -15,7 +15,7 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#473dff",
-  "background_color": "#473dff",
+  "theme_color": "#635ffe",
+  "background_color": "#635ffe",
   "display": "standalone"
 }
