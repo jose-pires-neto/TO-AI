@@ -1,29 +1,26 @@
 /**
  * ai.js — Integração com a IA (Groq)
- * SRP: Toda a lógica de chamada à API e de UI do chat fica aqui.
- * OCP: Para trocar de Groq para outro provider, altere apenas a função fetchGroq().
+ * SRP: Toda a lógica de chamada à API e de UI do chat/assistência fica aqui.
  */
 
 import { AI_SYSTEM_PROMPT, AI_AUTO_ORGANIZE_PROMPT } from './config.js';
 import { saveTaskDB, getTasksDB } from './db.js';
-import { setTasks, showToast } from './ui.js';
+import { setTasks, showToast, showAIProposalCard, hideAIProposalCard } from './ui.js';
 import { switchTab } from './app.js';
 
-/** Histórico de mensagens para manter contexto no chat. */
 let apiMessages = [{ role: 'system', content: AI_SYSTEM_PROMPT }];
+
+/** * Armazena a proposta atual da IA (Triagem Diária) aguardando aprovação 
+ */
+let pendingAIProposal = null;
+let originalPendingTasks = [];
 
 // ---------------------------------------------------------------------------
 // API Client
 // ---------------------------------------------------------------------------
-
-/**
- * Realiza uma chamada à API Groq e retorna o objeto de resposta.
- * @param {Object[]} messages
- * @returns {Promise<Object>}
- */
 export async function fetchGroq(messages) {
     const apiKey = localStorage.getItem('groqApiKey');
-    if (!apiKey) throw new Error('Chave da API não configurada. Vá em Ajustes.');
+    if (!apiKey) throw new Error('Chave da API não configurada.');
 
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -47,15 +44,13 @@ export async function fetchGroq(messages) {
 }
 
 // ---------------------------------------------------------------------------
-// Fluxo 1: Magic Add (criação silenciosa na tela principal)
+// Fluxo: Magic Add
 // ---------------------------------------------------------------------------
-
 async function processMagicAdd() {
     const input = document.getElementById('magicAddInput');
     const text = input.value.trim();
     if (!text) return;
 
-    // Fallback offline
     if (!localStorage.getItem('groqApiKey')) {
         const newTask = {
             id: Date.now().toString(), title: text, description: '',
@@ -115,88 +110,144 @@ async function processMagicAdd() {
 }
 
 // ---------------------------------------------------------------------------
-// Fluxo 2: Auto-Organizar Meu Dia
+// Fluxo: Triagem Diária / Auto-Organizar (Com Validação Humana)
 // ---------------------------------------------------------------------------
 
 /**
- * Envia todas as tarefas pendentes para a IA e enriquece com
- * energyLevel e subtasks. Atualiza cada tarefa no banco.
+ * Dispara a IA para analisar a lista, mas NÃO salva no banco.
+ * Apresenta o Card de Proposta para o usuário.
+ * @param {boolean} isSilent - Se true, não mostra erro se não tiver tasks (usado no load do app)
  */
-export async function autoOrganizeDay() {
+export async function autoOrganizeDay(isSilent = false) {
     if (!localStorage.getItem('groqApiKey')) {
-        showToast('Configure a API Key da Groq em Ajustes primeiro.');
-        setTimeout(() => switchTab('settings'), 2000);
+        if (!isSilent) {
+            showToast('Configure a API Key da Groq em Ajustes primeiro.');
+            setTimeout(() => switchTab('settings'), 2000);
+        }
         return;
     }
 
     const allTasks = await getTasksDB();
     const pendingTasks = allTasks.filter(t => !t.completed);
+    originalPendingTasks = pendingTasks; // Salva para aplicar depois
 
+    // Evita rodar se não tiver quase nada pra organizar
     if (pendingTasks.length === 0) {
-        showToast('Nenhuma tarefa pendente para organizar! 🎉');
+        if (!isSilent) showToast('Nenhuma tarefa pendente para organizar! 🎉');
         return;
     }
 
     const btn = document.getElementById('autoOrganizeBtn');
     const loader = document.getElementById('autoOrganizeLoader');
-    if (btn) btn.disabled = true;
-    if (loader) loader.classList.remove('hidden');
+    const btnText = document.getElementById('autoOrganizeBtnText');
+
+    if (btn && !isSilent) {
+        btn.disabled = true;
+        btnText.textContent = 'Pensando...';
+        loader.classList.remove('hidden');
+    }
 
     try {
-        // Envia somente os campos necessários para economizar tokens
         const tasksForAI = pendingTasks.map(t => ({
             id: t.id,
             title: t.title,
             description: t.description || '',
-            category: t.category,
-            dueDate: t.dueDate,
+            category: t.category
         }));
 
         const prompt = [
             { role: 'system', content: AI_AUTO_ORGANIZE_PROMPT },
-            { role: 'user', content: `Minhas tarefas pendentes: ${JSON.stringify(tasksForAI)}` },
+            { role: 'user', content: `Analise estas tarefas e proponha melhorias (subtasks, nível de energia): ${JSON.stringify(tasksForAI)}` },
         ];
 
         const data = await fetchGroq(prompt);
         const result = JSON.parse(data.choices[0].message.content);
 
+        // Se a IA achar que tem coisas pra atualizar, mostra a proposta
         if (result.tarefasAtualizadas?.length > 0) {
-            let updatedCount = 0;
-            for (const updated of result.tarefasAtualizadas) {
-                const existing = pendingTasks.find(t => t.id === updated.id);
-                if (!existing) continue;
+            pendingAIProposal = result.tarefasAtualizadas;
+            const message = result.respostaTexto || 'Analisei sua lista e fiz algumas otimizações de esforço e quebra de tarefas complexas. Posso aplicar?';
 
-                await saveTaskDB({
-                    ...existing,
-                    energyLevel: updated.energyLevel || existing.energyLevel || null,
-                    subtasks: (updated.subtasks?.length > 0)
-                        ? updated.subtasks
-                        : (existing.subtasks || []),
-                });
-                updatedCount++;
-            }
+            // Marca no LocalStorage que já fez a triagem hoje
+            localStorage.setItem('lastBriefingDate', new Date().toLocaleDateString('pt-BR'));
 
-            const final = await getTasksDB();
-            setTasks(final);
-            showToast(`✨ ${result.respostaTexto || `${updatedCount} tarefa(s) organizadas!`}`);
+            showAIProposalCard(message);
+            if (!isSilent) showToast('A Assistente gerou uma sugestão!');
         } else {
-            showToast('IA respondeu, mas sem atualizações para aplicar.');
+            if (!isSilent) showToast('A IA analisou e achou que sua lista já está perfeita! ✨');
+            // Salva a data para não tentar de novo no mesmo dia à toa
+            localStorage.setItem('lastBriefingDate', new Date().toLocaleDateString('pt-BR'));
         }
     } catch (error) {
-        showToast(`Erro ao organizar: ${error.message}`);
+        if (!isSilent) showToast(`Erro ao organizar: ${error.message}`);
     } finally {
-        if (btn) btn.disabled = false;
-        if (loader) loader.classList.add('hidden');
+        if (btn && !isSilent) {
+            btn.disabled = false;
+            btnText.textContent = 'Auto-Organizar Dia';
+            loader.classList.add('hidden');
+        }
+    }
+}
+
+/**
+ * Função acionada pelo botão "Aplicar" do Card de Proposta
+ */
+export async function approveAIProposal() {
+    if (!pendingAIProposal) return;
+
+    let updatedCount = 0;
+
+    // Atualiza as tarefas no banco usando a proposta salva
+    for (const updated of pendingAIProposal) {
+        const existing = originalPendingTasks.find(t => t.id === updated.id);
+        if (!existing) continue;
+
+        await saveTaskDB({
+            ...existing,
+            energyLevel: updated.energyLevel || existing.energyLevel || null,
+            subtasks: (updated.subtasks?.length > 0)
+                ? updated.subtasks
+                : (existing.subtasks || []),
+        });
+        updatedCount++;
+    }
+
+    const final = await getTasksDB();
+    setTasks(final);
+
+    hideAIProposalCard();
+    pendingAIProposal = null;
+    originalPendingTasks = [];
+
+    showToast(`✨ Legal! ${updatedCount} tarefa(s) foram otimizadas.`);
+}
+
+/**
+ * Função acionada pelo botão "Agora não" do Card de Proposta
+ */
+export function discardAIProposal() {
+    hideAIProposalCard();
+    pendingAIProposal = null;
+    originalPendingTasks = [];
+}
+
+/**
+ * Verifica se já fez a triagem automática hoje, se não, faz.
+ * É chamado na inicialização do app.
+ */
+export function checkDailyBriefing() {
+    const lastBriefing = localStorage.getItem('lastBriefingDate');
+    const today = new Date().toLocaleDateString('pt-BR');
+
+    if (lastBriefing !== today) {
+        // Roda a organização de forma silenciosa. Se tiver sugestão, o Card vai aparecer.
+        autoOrganizeDay(true);
     }
 }
 
 // ---------------------------------------------------------------------------
-// Fluxo 3: Chat Assistant
+// Fluxo: Chat Assistant
 // ---------------------------------------------------------------------------
-
-/**
- * Cria e insere uma bolha de chat no DOM.
- */
 export function appendChatUI(sender, text, type, id = null) {
     const chatBox = document.getElementById('chatBox');
     const div = document.createElement('div');
@@ -230,10 +281,6 @@ export function appendChatUI(sender, text, type, id = null) {
     chatBox.appendChild(div);
     setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 50);
 }
-
-// ---------------------------------------------------------------------------
-// Setup
-// ---------------------------------------------------------------------------
 
 export function setupMagicAdd() {
     document.getElementById('magicAddBtn').addEventListener('click', processMagicAdd);

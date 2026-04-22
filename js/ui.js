@@ -1,29 +1,48 @@
 /**
  * ui.js — Camada de Renderização
  * SRP: Apenas manipulação de DOM e renderização visual. Sem lógica de negócio.
- * OCP: Para mudar como uma tarefa é exibida, altere apenas este arquivo.
  */
 
 import { CATEGORY_COLORS, CATEGORY_ACCENTS } from './config.js';
 
-/** Estado local de tarefas. */
 export let tasks = [];
-
-/** Filtro ativo (categoria ou 'all'). */
 let currentFilter = 'all';
+
+// ---------------------------------------------------------------------------
+// Controle do Card de Proposta da IA
+// ---------------------------------------------------------------------------
+export function showAIProposalCard(messageText) {
+    const card = document.getElementById('aiProposalCard');
+    const textEl = document.getElementById('aiProposalText');
+
+    textEl.textContent = messageText;
+
+    card.classList.remove('hidden');
+    // Animação de entrada
+    setTimeout(() => {
+        card.classList.remove('scale-95', 'opacity-0');
+        card.classList.add('scale-100', 'opacity-100');
+    }, 50);
+}
+
+export function hideAIProposalCard() {
+    const card = document.getElementById('aiProposalCard');
+
+    // Animação de saída
+    card.classList.remove('scale-100', 'opacity-100');
+    card.classList.add('scale-95', 'opacity-0');
+
+    setTimeout(() => {
+        card.classList.add('hidden');
+    }, 500); // aguarda a transition do css
+}
 
 // ---------------------------------------------------------------------------
 // Filtros
 // ---------------------------------------------------------------------------
-
-/**
- * Define o filtro ativo e re-renderiza.
- * @param {string} filter — 'all' | 'Trabalho' | 'Pessoal' | 'Compras' | 'Geral'
- */
 export function setFilter(filter) {
     currentFilter = filter;
 
-    // Atualiza estilos dos botões de filtro
     document.querySelectorAll('.filter-btn').forEach(btn => {
         const isActive = btn.dataset.filter === filter;
         if (isActive) {
@@ -34,17 +53,12 @@ export function setFilter(filter) {
             btn.classList.add('bg-white', 'text-slate-600', 'border-slate-200');
         }
     });
-
     renderTasks();
 }
 
 // ---------------------------------------------------------------------------
 // Header / Data
 // ---------------------------------------------------------------------------
-
-/**
- * Exibe a data atual no header.
- */
 export function setCurrentDate() {
     const options = { weekday: 'long', day: 'numeric', month: 'long' };
     let dateStr = new Date().toLocaleDateString('pt-BR', options).replace('-feira', '');
@@ -55,10 +69,6 @@ export function setCurrentDate() {
 // ---------------------------------------------------------------------------
 // Cores
 // ---------------------------------------------------------------------------
-
-/**
- * Retorna classes CSS de cor para uma categoria.
- */
 export function getCategoryColor(cat) {
     return CATEGORY_COLORS[cat] || CATEGORY_COLORS['Geral'];
 }
@@ -66,18 +76,11 @@ export function getCategoryColor(cat) {
 // ---------------------------------------------------------------------------
 // Renderização principal
 // ---------------------------------------------------------------------------
-
-/**
- * Atualiza o array interno e re-renderiza a lista.
- */
 export function setTasks(taskList) {
     tasks = taskList;
     renderTasks();
 }
 
-/**
- * Re-renderiza todas as listas e atualiza os indicadores de progresso.
- */
 export function renderTasks() {
     const pendingList = document.getElementById('taskList');
     const completedList = document.getElementById('completedTaskList');
@@ -90,12 +93,11 @@ export function renderTasks() {
     const allPending = tasks.filter(t => !t.completed);
     const allCompleted = tasks.filter(t => t.completed);
 
-    // Aplica filtro de categoria nas pendentes
     const filtered = currentFilter === 'all'
         ? allPending
         : allPending.filter(t => t.category === currentFilter);
 
-    // ── Empty state ──
+    // Empty state
     const isEmpty = filtered.length === 0;
     emptyState.classList.toggle('hidden', !isEmpty);
     emptyState.classList.toggle('flex', isEmpty);
@@ -108,25 +110,22 @@ export function renderTasks() {
         }
     }
 
-    // ── Concluídas ──
+    // Concluídas
     document.getElementById('completedCount').textContent = allCompleted.length;
     completedContainer.classList.toggle('hidden', allCompleted.length === 0);
 
-    // ── Renderiza cards ──
+    // Renderiza cards
     filtered.forEach(task => pendingList.appendChild(createTaskElement(task)));
     allCompleted.forEach(task => completedList.appendChild(createTaskElement(task)));
 
-    // ── Atualiza badge de pendentes ──
+    // Atualiza badge
     const badge = document.getElementById('pendingBadge');
     if (badge) badge.textContent = allPending.length;
 
-    // ── Atualiza progress ring ──
+    // Atualiza progress ring
     updateProgressRing(allPending.length, allCompleted.length);
 }
 
-/**
- * Atualiza o anel de progresso SVG e os contadores.
- */
 function updateProgressRing(pendingCount, completedCount) {
     const total = pendingCount + completedCount;
     const pct = total === 0 ? 0 : Math.round((completedCount / total) * 100);
@@ -140,28 +139,19 @@ function updateProgressRing(pendingCount, completedCount) {
     if (pCount) pCount.textContent = pendingCount;
     if (cCount) cCount.textContent = completedCount;
 
-    // Cor do anel: verde quando tudo concluído
     if (ring) ring.setAttribute('stroke', pct === 100 ? '#34A853' : '#4285F4');
 }
 
 // ---------------------------------------------------------------------------
 // Criação de card de tarefa
 // ---------------------------------------------------------------------------
-
-/**
- * Cria e retorna o elemento DOM de uma tarefa.
- * @param {Object} task
- * @returns {HTMLElement}
- */
 export function createTaskElement(task) {
     const div = document.createElement('div');
     div.className = `task-card-enter bg-white rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden transition-all hover:shadow-md pl-5 ${task.completed ? 'opacity-60' : ''}`;
 
-    // ── Accent bar lateral ──
     const accentColor = CATEGORY_ACCENTS[task.category] || CATEGORY_ACCENTS['Geral'];
     const accentBar = `<div class="task-accent" style="background:${accentColor}"></div>`;
 
-    // ── Badge de data ──
     let dateBadge = '';
     if (task.dueDate) {
         const d = new Date(task.dueDate);
@@ -172,12 +162,10 @@ export function createTaskElement(task) {
         </span>`;
     }
 
-    // ── Badge de categoria ──
     const catBadge = task.category
         ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${getCategoryColor(task.category)}">${task.category}</span>`
         : '';
 
-    // ── Badge de energia ──
     const energyMap = {
         'Baixa': { cls: 'energy-low', icon: '🔋' },
         'Média': { cls: 'energy-mid', icon: '⚡' },
@@ -189,7 +177,6 @@ export function createTaskElement(task) {
         energyBadge = `<span class="energy-badge ${e.cls}">${e.icon} ${task.energyLevel}</span>`;
     }
 
-    // ── Subtarefas ──
     const subtasks = task.subtasks || [];
     const doneCount = subtasks.filter(s => s.done).length;
     const totalSubs = subtasks.length;
@@ -212,7 +199,6 @@ export function createTaskElement(task) {
 
         subtasksHTML = `
             <div class="mt-3 pt-3 border-t border-slate-100">
-                <!-- Progress bar -->
                 <div class="flex items-center gap-2 mb-2 cursor-pointer"
                      onclick="event.stopPropagation(); window.toggleSubtaskList('${task.id}')">
                     <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -222,7 +208,6 @@ export function createTaskElement(task) {
                     <span class="text-[10px] text-slate-400 font-black shrink-0">${doneCount}/${totalSubs}</span>
                     <i class="fas fa-chevron-down text-[9px] text-slate-300 shrink-0 transition-transform" id="subicon-${task.id}"></i>
                 </div>
-                <!-- Subtask list (expanded by default if not all done) -->
                 <div id="sublist-${task.id}" class="${subProgress === 100 ? 'subtask-list-collapsed' : 'subtask-list-expanded'}">
                     ${subItems}
                 </div>
@@ -233,7 +218,6 @@ export function createTaskElement(task) {
         ${accentBar}
         <div class="p-4">
             <div class="flex items-start gap-3">
-                <!-- Checkbox -->
                 <div class="pt-0.5 shrink-0">
                     <div onclick="window.toggleTask('${task.id}', this)"
                         class="w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all duration-300
@@ -241,13 +225,11 @@ export function createTaskElement(task) {
                         ${task.completed ? '<i class="fas fa-check text-white text-[10px]"></i>' : ''}
                     </div>
                 </div>
-                <!-- Content -->
                 <div class="flex-1 min-w-0" onclick="window.editTask('${task.id}')">
                     <h4 class="font-semibold text-[15px] leading-snug transition-all ${task.completed ? 'line-through text-slate-400' : 'text-slate-800'}">
                         ${task.title}
                     </h4>
                     ${task.description ? `<p class="text-sm text-slate-400 mt-0.5 line-clamp-1">${task.description}</p>` : ''}
-                    <!-- Badges row -->
                     <div class="flex items-center flex-wrap gap-1.5 mt-2">
                         ${catBadge}
                         ${energyBadge}
@@ -255,7 +237,6 @@ export function createTaskElement(task) {
                     </div>
                     ${subtasksHTML}
                 </div>
-                <!-- Delete button -->
                 <button onclick="event.stopPropagation(); window.deleteTask('${task.id}')"
                     class="p-2 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors shrink-0 -mt-1 -mr-1">
                     <i class="fas fa-trash-alt text-sm"></i>
@@ -266,13 +247,6 @@ export function createTaskElement(task) {
     return div;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers de UI
-// ---------------------------------------------------------------------------
-
-/**
- * Alterna a visibilidade da lista de tarefas concluídas.
- */
 export function toggleCompleted() {
     const list = document.getElementById('completedTaskList');
     const icon = document.getElementById('completedIcon');
@@ -280,10 +254,6 @@ export function toggleCompleted() {
     icon.style.transform = list.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
-/**
- * Exibe um toast de notificação temporário.
- * @param {string} message
- */
 export function showToast(message) {
     const toast = document.getElementById('toast');
     document.getElementById('toastMsg').textContent = message;

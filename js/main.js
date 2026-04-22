@@ -1,24 +1,16 @@
 /**
  * main.js — Entry Point da Aplicação
- * ─────────────────────────────────────────────────────────────────────────────
- * Responsabilidades:
- *  1. Importar todos os módulos em ordem de dependência.
- *  2. Expor no window.* APENAS as funções chamadas diretamente pelo HTML.
- *  3. Orquestrar a inicialização da app no DOMContentLoaded.
- * ─────────────────────────────────────────────────────────────────────────────
+ * Responsabilidades: Importar, expor funções ao HTML e inicializar.
  */
 
 import { initDB, getTasksDB, saveTaskDB, deleteTaskDB } from './db.js';
 import { setTasks, setCurrentDate, toggleCompleted, showToast, setFilter } from './ui.js';
 import { openTaskModal, closeTaskModal, editTask, setupModal } from './modal.js';
-import { setupMagicAdd, setupChat, autoOrganizeDay } from './ai.js';
+import { setupMagicAdd, setupChat, autoOrganizeDay, approveAIProposal, discardAIProposal, checkDailyBriefing } from './ai.js';
 import { switchTab, saveSettings } from './app.js';
 import { backupToDrive, restoreFromDrive } from './drive.js';
 
-// ---------------------------------------------------------------------------
 // Exposição global — funções acionadas por onclick no HTML
-// ---------------------------------------------------------------------------
-
 window.switchTab = switchTab;
 window.openTaskModal = openTaskModal;
 window.closeTaskModal = closeTaskModal;
@@ -29,10 +21,8 @@ window.backupToDrive = backupToDrive;
 window.restoreFromDrive = restoreFromDrive;
 window.autoOrganizeDay = autoOrganizeDay;
 window.setFilter = setFilter;
-
-// ---------------------------------------------------------------------------
-// toggleTask — marca/desmarca tarefa como concluída
-// ---------------------------------------------------------------------------
+window.approveAIProposal = approveAIProposal; // NOVA
+window.discardAIProposal = discardAIProposal; // NOVA
 
 window.toggleTask = async (id, checkboxEl) => {
     const { tasks } = await import('./ui.js');
@@ -53,20 +43,12 @@ window.toggleTask = async (id, checkboxEl) => {
     if (task.completed) showToast('Mandou bem! Tarefa concluída. ✅');
 };
 
-// ---------------------------------------------------------------------------
-// deleteTask — remove uma tarefa
-// ---------------------------------------------------------------------------
-
 window.deleteTask = async (id) => {
     await deleteTaskDB(id);
     const updated = await getTasksDB();
     setTasks(updated);
     showToast('Tarefa apagada');
 };
-
-// ---------------------------------------------------------------------------
-// toggleSubtask — marca/desmarca uma subtarefa dentro de uma tarefa
-// ---------------------------------------------------------------------------
 
 window.toggleSubtask = async (taskId, subtaskIndex) => {
     const { tasks } = await import('./ui.js');
@@ -80,10 +62,6 @@ window.toggleSubtask = async (taskId, subtaskIndex) => {
     setTasks(updated);
 };
 
-// ---------------------------------------------------------------------------
-// toggleSubtaskList — expande/colapsa a lista de subtarefas no card
-// ---------------------------------------------------------------------------
-
 window.toggleSubtaskList = (taskId) => {
     const list = document.getElementById(`sublist-${taskId}`);
     const icon = document.getElementById(`subicon-${taskId}`);
@@ -95,10 +73,7 @@ window.toggleSubtaskList = (taskId) => {
     if (icon) icon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
 };
 
-// ---------------------------------------------------------------------------
 // Inicialização
-// ---------------------------------------------------------------------------
-
 window.addEventListener('DOMContentLoaded', async () => {
     await initDB();
 
@@ -109,4 +84,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     setupModal();
     setupMagicAdd();
     setupChat();
+
+    // NOVO: Chama a triagem diária no carregamento (se não foi feita hoje)
+    setTimeout(() => {
+        checkDailyBriefing();
+    }, 1500); // pequeno delay pra página renderizar fluída primeiro
 });
