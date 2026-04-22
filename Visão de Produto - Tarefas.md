@@ -49,6 +49,18 @@ A melhor interface é aquela que você quase não precisa usar.
 * **O que é:** A IA não só anota, ela *tenta resolver*.  
 * **Exemplo:** Tarefa "Comprar presente para minha mãe". A IA já embute um botão com 3 links do Google Shopping baseados no perfil dela. Tarefa "Marcar médico", a IA sugere horários usando a API de buscas.
 
+## **📖 Pilar 4: Centralização de Foco e Diário Pessoal**
+
+Para manter o usuário engajado além das listas, o app precisa centralizar os pensamentos e o foco dele.
+
+### **6\. Central de Ações (FAB Expansível)**
+* **O que é:** O botão primário evolui para um menu de ferramentas dinâmico.
+* **Ação:** Um hub rápido para adicionar tarefas, acionar o modo pomodoro ou escanear ideias rápidas.
+
+### **7\. O Diário Híbrido (Agenda Notes)**
+* **O que é:** Uma view cruzando Tarefas do dia com Anotações Livres do dia, similar ao Daily Note de apps modernos.
+* **Ação:** O usuário registra resumos de reunião e sentimentos logo abaixo da lista de obrigações daquele dia, consolidando informações vitais num único repositório que a IA entende.
+
 ## **🛠️ Plano de Ação Imediato para o Código (MVP Nível 2\)**
 
 Para colocar isso no código que já temos (antes de entregar), sugiro implementarmos **3 coisas cruciais** no prompt do Groq e no frontend:

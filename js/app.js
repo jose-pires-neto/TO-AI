@@ -21,6 +21,7 @@ export function switchTab(tabId) {
     document.getElementById('viewAI').classList.remove('flex');
     document.getElementById('viewSettings').classList.add('hidden');
     document.getElementById('viewMetrics').classList.add('hidden');
+    document.getElementById('viewAgenda').classList.add('hidden');
 
     // Reset dos botões de navegação
     document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -36,7 +37,7 @@ export function switchTab(tabId) {
     // Exibe a view correspondente
     if (tabId === 'tasks') {
         document.getElementById('viewTasks').classList.remove('hidden');
-        document.getElementById('headerTitle').textContent = 'Tarefas IA';
+        document.getElementById('headerTitle').textContent = 'TASK.AI';
 
     } else if (tabId === 'ai') {
         const viewAI = document.getElementById('viewAI');
@@ -59,6 +60,11 @@ export function switchTab(tabId) {
         document.getElementById('viewMetrics').classList.remove('hidden');
         document.getElementById('headerTitle').textContent = 'Métricas';
         import('./stats.js').then(mod => mod.renderStats());
+
+    } else if (tabId === 'agenda') {
+        document.getElementById('viewAgenda').classList.remove('hidden');
+        document.getElementById('headerTitle').textContent = 'Diário';
+        import('./journal.js').then(mod => mod.initJournal());
     }
 }
 

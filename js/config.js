@@ -5,7 +5,7 @@
  */
 
 export const DB_NAME = 'GoogleTarefasAIDB';
-export const DB_VERSION = 3;
+export const DB_VERSION = 4; // Atualizado para suportar Diário Pessoal (Agenda)
 export const STORE_NAME = 'tasks_v3';
 
 export const FILE_NAME_DRIVE = 'google_tarefas_ai_backup.json';

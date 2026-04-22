@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Google Tarefas AI</title>
+    <title>TASK.AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -12,12 +12,21 @@
     <link rel="stylesheet" href="style.css">
 
     <!-- PWA -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#4285F4">
-    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="./favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="./favicon/favicon.svg" />
+    <link rel="shortcut icon" href="./favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./favicon/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="TASK.AI" />
+    <link rel="manifest" href="./favicon/site.webmanifest" />
 
     <!-- SortableJS para Drag and Drop fluido (Mobile & Desktop) -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <!-- Quill.js para Rich Text (Diário) -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -230,11 +239,37 @@
                     IA.</p>
             </div>
 
-            <!-- FAB -->
-            <button onclick="openTaskModal()"
-                class="fixed bottom-20 right-5 w-14 h-14 bg-slate-800 text-white rounded-2xl shadow-xl shadow-slate-300 flex items-center justify-center text-xl hover:bg-slate-900 active:scale-90 transition-all z-10">
-                <i class="fas fa-plus"></i>
-            </button>
+            <!-- FAB Expansível -->
+            <div class="fixed bottom-20 right-5 z-20 flex flex-col-reverse items-end gap-3">
+                <!-- Main FAB -->
+                <button onclick="toggleFAB()" id="mainFab"
+                    class="w-14 h-14 bg-slate-800 text-white rounded-2xl shadow-xl shadow-slate-300 flex items-center justify-center text-xl hover:bg-slate-900 active:scale-90 transition-all duration-300 relative z-30">
+                    <i class="fas fa-plus transition-transform duration-300" id="fabIcon"></i>
+                </button>
+
+                <!-- Secondary FABs -->
+                <div id="fabMenu"
+                    class="flex flex-col items-end gap-3 transition-all duration-300 opacity-0 translate-y-10 pointer-events-none absolute bottom-16 right-0">
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="bg-white px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-slate-700 opacity-90">Modo
+                            Foco</span>
+                        <button onclick="openPomodoro(); toggleFAB()"
+                            class="w-12 h-12 bg-white text-google-red rounded-full shadow-lg flex items-center justify-center text-lg hover:bg-red-50 active:scale-90 transition-all">
+                            <i class="fas fa-stopwatch"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="bg-white px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-slate-700 opacity-90">Nova
+                            Tarefa</span>
+                        <button onclick="openTaskModal(); toggleFAB()"
+                            class="w-12 h-12 bg-white text-google-blue rounded-full shadow-lg flex items-center justify-center text-lg hover:bg-blue-50 active:scale-90 transition-all">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- ─── View: ASSISTENTE IA ────────────────────────── -->
@@ -403,6 +438,37 @@
 
         </section>
 
+        <!-- ─── View: DIÁRIO / AGENDA ────────────────────────── -->
+        <section id="viewAgenda" class="absolute inset-0 overflow-y-auto p-5 pb-28 hidden bg-google-surface">
+            <div class="mb-5 flex justify-between items-center">
+                <h2 class="text-[28px] font-bold text-slate-800 leading-tight" id="agendaTitle">Diário
+                    <br><span class="text-slate-500 font-medium text-xl" id="agendaDateIndicator">Suas notas do
+                        dia</span>
+                </h2>
+                <div class="text-sm font-bold text-google-blue bg-blue-50 px-3 py-1 rounded-full"><i
+                        class="far fa-calendar-alt"></i> Hoje</div>
+            </div>
+
+            <!-- Editor de Rich Text -->
+            <div
+                class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6 flex flex-col min-h-[350px]">
+                <div id="quillToolbar" class="border-b border-slate-100 bg-slate-50 px-3 py-1 flex gap-2">
+                    <span class="ql-formats">
+                        <button class="ql-bold"></button>
+                        <button class="ql-italic"></button>
+                    </span>
+                    <span class="ql-formats">
+                        <button class="ql-list" value="ordered"></button>
+                        <button class="ql-list" value="bullet"></button>
+                    </span>
+                </div>
+                <div id="quillEditor" class="flex-1 bg-white text-slate-700 text-sm p-4 outline-none"></div>
+            </div>
+
+            <p class="text-xs text-center text-slate-400 font-bold"><i class="fas fa-cloud-arrow-up"></i> Salvo
+                automaticamente</p>
+        </section>
+
     </main>
 
     <!-- ═══════════════════════════════════════════════════ -->
@@ -412,10 +478,17 @@
         class="glass border-t border-slate-200/60 flex justify-around items-center px-2 py-1 pb-safe fixed bottom-0 w-full z-30">
         <button onclick="switchTab('tasks')" id="tab-tasks"
             class="nav-btn flex flex-col items-center gap-1 p-2 w-20 text-google-blue transition-all">
-            <div class="px-4 py-1 rounded-full bg-blue-100/0 transition-colors nav-indicator mb-0.5">
+            <div class="px-4 py-1 rounded-full bg-blue-100 transition-colors nav-indicator mb-0.5">
                 <i class="fas fa-list-check text-xl"></i>
             </div>
             <span class="text-[10px] font-semibold">Tarefas</span>
+        </button>
+        <button onclick="switchTab('agenda')" id="tab-agenda"
+            class="nav-btn flex flex-col items-center gap-1 p-2 w-20 text-slate-400 hover:text-google-blue transition-all">
+            <div class="px-4 py-1 rounded-full bg-blue-100/0 transition-colors nav-indicator mb-0.5">
+                <i class="fas fa-book-open text-xl"></i>
+            </div>
+            <span class="text-[10px] font-semibold">Diário</span>
         </button>
         <button onclick="switchTab('ai')" id="tab-ai"
             class="nav-btn flex flex-col items-center gap-1 p-2 w-20 text-slate-400 hover:text-google-blue transition-all">
@@ -555,6 +628,73 @@
         <span id="toastMsg">Mensagem</span>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- MODO FOCO (POMODORO)                                -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="pomodoroView"
+        class="fixed inset-0 bg-slate-900 z-50 hidden flex-col items-center justify-center text-white transition-all px-4 w-full h-full">
+        <!-- Close button -->
+        <button onclick="closePomodoro()"
+            class="absolute top-8 right-6 text-slate-400 hover:text-white text-3xl p-2 z-10">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <div class="text-center mb-8 w-full max-w-sm">
+            <h2 class="text-3xl font-black mb-2 text-google-blue tracking-wide flex items-center justify-center gap-2">
+                <i class="fas fa-brain"></i> MODO FOCO
+            </h2>
+            <p class="text-slate-400 font-medium text-sm">Tempo ininterrupto para produzir mais.</p>
+        </div>
+
+        <!-- Pre-sets de Tempo -->
+        <div class="flex items-center justify-center gap-3 mb-8 w-full max-w-sm flex-wrap">
+            <button onclick="setPomodoroTime(5)"
+                class="preset-btn px-4 py-2 bg-slate-800 rounded-full text-sm font-bold text-slate-300 hover:text-white hover:bg-google-blue transition-all border border-slate-700">5m</button>
+            <button onclick="setPomodoroTime(15)"
+                class="preset-btn px-4 py-2 bg-slate-800 rounded-full text-sm font-bold text-slate-300 hover:text-white hover:bg-google-blue transition-all border border-slate-700">15m</button>
+            <button onclick="setPomodoroTime(25)"
+                class="preset-btn px-4 py-2 bg-google-blue rounded-full text-sm font-bold text-white transition-all border border-google-blue shadow-lg shadow-blue-500/20"
+                id="btn-preset-25">25m</button>
+
+            <div
+                class="flex items-center bg-slate-800 rounded-full border border-slate-700 overflow-hidden pl-3 focus-within:border-google-blue transition-colors">
+                <i class="fas fa-clock text-slate-400 text-xs"></i>
+                <input type="number" id="customPomodoroTime" onchange="setCustomPomodoroTime(this.value)"
+                    placeholder="Min"
+                    class="w-12 bg-transparent text-sm font-bold text-white text-center outline-none py-2 mx-1 placeholder-slate-500 appearance-none">
+            </div>
+        </div>
+
+        <!-- Timer Circle -->
+        <div class="relative w-64 h-64 sm:w-72 sm:h-72 mb-10 flex items-center justify-center">
+            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#1e293b" stroke-width="4" />
+                <circle id="pomodoroRing" cx="50" cy="50" r="45" fill="none" stroke="#4285F4" stroke-width="4"
+                    stroke-dasharray="283" stroke-dashoffset="0" stroke-linecap="round"
+                    class="transition-all duration-1000 ease-linear" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span id="pomodoroTimerDisplay"
+                    class="text-6xl sm:text-7xl font-black tracking-tighter tabular-nums text-white">25:00</span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex gap-6 items-center justify-center w-full max-w-sm">
+            <button onclick="togglePomodoroTimer()" id="pomodoroPlayBtn"
+                class="w-20 h-20 bg-google-blue rounded-full flex items-center justify-center text-3xl shadow-[0_0_30px_rgba(66,133,244,0.4)] active:scale-95 transition-all text-white">
+                <i class="fas fa-play ml-2" id="pomodoroPlayIcon"></i>
+            </button>
+            <button onclick="resetPomodoro()"
+                class="w-14 h-14 bg-slate-800 rounded-full flex items-center justify-center text-xl hover:bg-slate-700 active:scale-95 transition-all text-slate-300">
+                <i class="fas fa-redo-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/ui.js"></script>
+    <script type="module" src="js/ai.js"></script>
     <script type="module" src="js/main.js"></script>
 </body>
 
