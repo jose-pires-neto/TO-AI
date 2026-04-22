@@ -4,7 +4,7 @@
  */
 
 import { AI_SYSTEM_PROMPT, AI_AUTO_ORGANIZE_PROMPT } from './config.js';
-import { saveTaskDB, getTasksDB } from './db.js';
+import { saveTaskDB, getTasksDB, deleteTaskDB } from './db.js';
 import { setTasks, showToast, showAIProposalCard, hideAIProposalCard } from './ui.js';
 import { switchTab } from './app.js';
 
@@ -314,12 +314,28 @@ export function setupChat() {
             'ai', loaderId);
 
         try {
-            const data = await fetchGroq(apiMessages);
+            // Prepara o contexto com as tarefas atuais pendentes
+            const allTasks = await getTasksDB();
+            const pendingTasks = allTasks.filter(t => !t.completed).map(t => ({
+                id: t.id,
+                title: t.title,
+                energyLevel: t.energyLevel,
+                category: t.category
+            }));
+            const contextMsg = `CONTEXTO ATUAL (Lista de tarefas pendentes): ${JSON.stringify(pendingTasks)}\n\nPERGUNTA DO USUÁRIO: ${text}`;
+            
+            // Cria um array de mensagens temporário para esta chamada para não poluir o histórico com o contexto repetido
+            const messagesForAPI = [...apiMessages];
+            messagesForAPI[messagesForAPI.length - 1] = { role: 'user', content: contextMsg };
+
+            const data = await fetchGroq(messagesForAPI);
             const replyContent = data.choices[0].message.content;
             apiMessages.push({ role: 'assistant', content: replyContent });
 
             document.getElementById(loaderId)?.remove();
             const responseObj = JSON.parse(replyContent);
+
+            let hasUpdates = false;
 
             if (responseObj.respostaTexto) {
                 appendChatUI('Assistente', responseObj.respostaTexto, 'ai');
@@ -339,14 +355,54 @@ export function setupChat() {
                         createdAt: Date.now(),
                     });
                 }
-                const updated = await getTasksDB();
-                setTasks(updated);
+                hasUpdates = true;
                 appendChatUI('Sistema',
                     `<div class="bg-blue-50 border border-blue-100 p-3 rounded-2xl text-center text-blue-700 font-medium cursor-pointer hover:bg-blue-100 transition-colors shadow-sm" onclick="window.switchTab('tasks')">
                         <i class="fas fa-check-circle mr-2 text-google-blue"></i> ${responseObj.tarefasParaCriar.length} tarefa(s) criada(s)! Toque para ver.
                     </div>`,
                     'system_ui');
             }
+
+            if (responseObj.tarefasParaAtualizar?.length > 0) {
+                const dbAll = await getTasksDB();
+                for (const t of responseObj.tarefasParaAtualizar) {
+                    const idx = dbAll.findIndex(x => x.id === t.id);
+                    if (idx > -1) {
+                        dbAll[idx] = { ...dbAll[idx], ...t };
+                        await saveTaskDB(dbAll[idx]);
+                    }
+                }
+                hasUpdates = true;
+            }
+
+            if (responseObj.tarefasParaDeletar?.length > 0) {
+                for (const id of responseObj.tarefasParaDeletar) {
+                    await deleteTaskDB(id);
+                }
+                hasUpdates = true;
+            }
+
+            if (hasUpdates) {
+                const finalUpdated = await getTasksDB();
+                setTasks(finalUpdated);
+            }
+
+            if (responseObj.tarefasParaExibirComBotoes?.length > 0) {
+                let html = '<div class="mt-2 space-y-2">';
+                for (const t of responseObj.tarefasParaExibirComBotoes) {
+                    html += `
+                        <div class="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-xl shadow-sm">
+                            <span class="text-sm font-semibold text-slate-700 truncate mr-2">${t.title}</span>
+                            <button type="button" onclick="window.toggleTask('${t.id}', this)" class="shrink-0 bg-slate-50 border border-slate-200 text-slate-500 hover:text-google-green text-xs font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+                appendChatUI('Assistente', html, 'system_ui');
+            }
+
         } catch (error) {
             document.getElementById(loaderId)?.remove();
             appendChatUI('Erro', `<b>Falha na IA:</b><br>${error.message}`, 'error');
