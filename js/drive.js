@@ -32,8 +32,8 @@ function getGoogleToken() {
         try {
             const client = google.accounts.oauth2.initTokenClient({
                 client_id: clientId,
-                scope:     'https://www.googleapis.com/auth/drive.appdata',
-                callback:  (resp) => {
+                scope: 'https://www.googleapis.com/auth/drive.appdata',
+                callback: (resp) => {
                     if (resp?.access_token) {
                         accessToken = resp.access_token;
                         resolve(accessToken);
@@ -60,8 +60,20 @@ function getGoogleToken() {
  * @returns {Promise<string|null>}
  */
 async function findBackupFileId(token) {
-    const url = `https://www.googleapis.com/drive/v3/files?q=name='${FILE_NAME_DRIVE}' and spaces='appDataFolder'&spaces=appDataFolder&fields=files(id, name)`;
-    const res  = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+    // 1. Montamos a query isolada e encodamos os caracteres (como as aspas simples)
+    const query = encodeURIComponent(`name='${FILE_NAME_DRIVE}'`);
+
+    // 2. Passamos a query e o parâmetro spaces corretamente separados
+    const url = `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=appDataFolder&fields=files(id,name)`;
+
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+
+    if (!res.ok) {
+        // Se der erro 400 ou outro, vai avisar no console de forma mais clara
+        console.error('Erro ao buscar ID do backup:', await res.text());
+        return null;
+    }
+
     const data = await res.json();
     return data.files?.length > 0 ? data.files[0].id : null;
 }
@@ -77,22 +89,22 @@ async function findBackupFileId(token) {
 export async function backupToDrive() {
     try {
         showToast('Sincronizando com a nuvem...');
-        const token       = await getGoogleToken();
-        const allTasks    = await getTasksDB();
+        const token = await getGoogleToken();
+        const allTasks = await getTasksDB();
         const fileContent = JSON.stringify(allTasks);
-        const fileId      = await findBackupFileId(token);
+        const fileId = await findBackupFileId(token);
 
         const metadata = {
-            name:     FILE_NAME_DRIVE,
+            name: FILE_NAME_DRIVE,
             mimeType: 'application/json',
             ...(fileId ? {} : { parents: ['appDataFolder'] }),
         };
 
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-        form.append('file',     new Blob([fileContent],               { type: 'application/json' }));
+        form.append('file', new Blob([fileContent], { type: 'application/json' }));
 
-        const url    = fileId
+        const url = fileId
             ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
             : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
         const method = fileId ? 'PATCH' : 'POST';
@@ -100,7 +112,7 @@ export async function backupToDrive() {
         const res = await fetch(url, {
             method,
             headers: { 'Authorization': `Bearer ${token}` },
-            body:    form,
+            body: form,
         });
 
         if (res.ok) {
@@ -121,7 +133,7 @@ export async function backupToDrive() {
 export async function restoreFromDrive() {
     try {
         showToast('Buscando backup na nuvem...');
-        const token  = await getGoogleToken();
+        const token = await getGoogleToken();
         const fileId = await findBackupFileId(token);
 
         if (!fileId) { showToast('Nenhum backup encontrado.'); return; }
