@@ -10,6 +10,7 @@ import { setupMagicAdd, setupChat, autoOrganizeDay, approveAIProposal, discardAI
 import { switchTab, saveSettings } from './app.js';
 import { backupToDrive, restoreFromDrive } from './drive.js';
 import { playSuccessSound, initUX } from './ux.js';
+import { togglePomodoroTimer, resetPomodoro, closePomodoro, setPomodoroTime, setCustomPomodoroTime } from './pomodoro.js';
 
 // Exposição global — funções acionadas por onclick no HTML
 window.switchTab = switchTab;
@@ -27,6 +28,11 @@ window.discardAIProposal = discardAIProposal; // NOVA
 window.addModalSubtask = addModalSubtask;
 window.checkEmptySubtasks = checkEmptySubtasks;
 window.selectEnergy = selectEnergy;
+window.togglePomodoroTimer = togglePomodoroTimer;
+window.resetPomodoro = resetPomodoro;
+window.closePomodoro = closePomodoro;
+window.setPomodoroTime = setPomodoroTime;
+window.setCustomPomodoroTime = setCustomPomodoroTime;
 
 window.toggleTask = async (id, checkboxEl) => {
     const { tasks } = await import('./ui.js');
@@ -39,6 +45,11 @@ window.toggleTask = async (id, checkboxEl) => {
     }
 
     task.completed = !task.completed;
+    if (task.completed) {
+        task.completedAt = Date.now();
+    } else {
+        delete task.completedAt;
+    }
     await saveTaskDB(task);
 
     const updated = await getTasksDB();
@@ -83,6 +94,25 @@ window.toggleSubtaskList = (taskId) => {
     list.classList.toggle('subtask-list-collapsed', !isCollapsed);
     list.classList.toggle('subtask-list-expanded', isCollapsed);
     if (icon) icon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+};
+
+window.toggleFAB = () => {
+    const menu = document.getElementById('fabMenu');
+    const icon = document.getElementById('fabIcon');
+    const isClosed = menu.classList.contains('opacity-0');
+    
+    if (isClosed) {
+        menu.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
+        icon.classList.add('rotate-45');
+    } else {
+        menu.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
+        icon.classList.remove('rotate-45');
+    }
+};
+
+window.openPomodoro = () => {
+    const view = document.getElementById('pomodoroView');
+    if(view) view.classList.remove('hidden');
 };
 
 // Inicialização

@@ -30,6 +30,9 @@ export function initDB() {
             if (!database.objectStoreNames.contains(STORE_NAME)) {
                 database.createObjectStore(STORE_NAME, { keyPath: 'id' });
             }
+            if (!database.objectStoreNames.contains('journal')) {
+                database.createObjectStore('journal', { keyPath: 'dateStr' });
+            }
         };
     });
 }
@@ -57,8 +60,16 @@ export function getTasksDB() {
         const tx      = db.transaction([STORE_NAME], 'readonly');
         const store   = tx.objectStore(STORE_NAME);
         const request = store.getAll();
-        request.onsuccess = () =>
-            resolve(request.result.sort((a, b) => b.createdAt - a.createdAt));
+        request.onsuccess = () => {
+            const all = request.result || [];
+            all.sort((a, b) => {
+                // Se não tem order, geramos um fallback onde os mais novos ficam no topo
+                const orderA = a.order !== undefined ? a.order : Number.MAX_SAFE_INTEGER - a.createdAt;
+                const orderB = b.order !== undefined ? b.order : Number.MAX_SAFE_INTEGER - b.createdAt;
+                return orderA - orderB;
+            });
+            resolve(all);
+        };
         request.onerror = () => reject('Erro ao buscar tarefas');
     });
 }
@@ -85,5 +96,29 @@ export function clearAllTasksDB() {
         const store = tx.objectStore(STORE_NAME);
         store.clear();
         tx.oncomplete = () => resolve();
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Operações de Diário / Agenda (Journal)
+// ---------------------------------------------------------------------------
+
+export function saveJournalDB(journalEntry) {
+    return new Promise((resolve, reject) => {
+        const tx    = db.transaction(['journal'], 'readwrite');
+        const store = tx.objectStore('journal');
+        store.put(journalEntry);
+        tx.oncomplete = () => resolve();
+        tx.onerror    = () => reject('Erro ao salvar nota no diário');
+    });
+}
+
+export function getJournalDB(dateStr) {
+    return new Promise((resolve, reject) => {
+        const tx      = db.transaction(['journal'], 'readonly');
+        const store   = tx.objectStore('journal');
+        const request = store.get(dateStr);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject('Erro ao buscar nota');
     });
 }

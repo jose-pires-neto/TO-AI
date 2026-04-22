@@ -20,6 +20,8 @@ export function switchTab(tabId) {
     document.getElementById('viewAI').classList.add('hidden', 'flex');
     document.getElementById('viewAI').classList.remove('flex');
     document.getElementById('viewSettings').classList.add('hidden');
+    document.getElementById('viewMetrics').classList.add('hidden');
+    document.getElementById('viewAgenda').classList.add('hidden');
 
     // Reset dos botões de navegação
     document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -35,7 +37,7 @@ export function switchTab(tabId) {
     // Exibe a view correspondente
     if (tabId === 'tasks') {
         document.getElementById('viewTasks').classList.remove('hidden');
-        document.getElementById('headerTitle').textContent = 'Tarefas IA';
+        document.getElementById('headerTitle').textContent = 'TASK.AI';
 
     } else if (tabId === 'ai') {
         const viewAI = document.getElementById('viewAI');
@@ -51,8 +53,18 @@ export function switchTab(tabId) {
         document.getElementById('viewSettings').classList.remove('hidden');
         document.getElementById('headerTitle').textContent = 'Ajustes';
         // Preenche os campos com os valores salvos
-        document.getElementById('groqKeyInput').value        = localStorage.getItem('groqApiKey')     || '';
+        document.getElementById('groqKeyInput').value = localStorage.getItem('groqApiKey') || '';
         document.getElementById('googleClientIdInput').value = localStorage.getItem('googleClientId') || '';
+
+    } else if (tabId === 'metrics') {
+        document.getElementById('viewMetrics').classList.remove('hidden');
+        document.getElementById('headerTitle').textContent = 'Métricas';
+        import('./stats.js').then(mod => mod.renderStats());
+
+    } else if (tabId === 'agenda') {
+        document.getElementById('viewAgenda').classList.remove('hidden');
+        document.getElementById('headerTitle').textContent = 'Diário';
+        import('./journal.js').then(mod => mod.initJournal());
     }
 }
 
@@ -64,9 +76,9 @@ export function switchTab(tabId) {
  * Lê os inputs de configuração e persiste no localStorage.
  */
 export function saveSettings() {
-    const groqKey  = document.getElementById('groqKeyInput').value.trim();
+    const groqKey = document.getElementById('groqKeyInput').value.trim();
     const clientId = document.getElementById('googleClientIdInput').value.trim();
-    if (groqKey)  localStorage.setItem('groqApiKey',      groqKey);
-    if (clientId) localStorage.setItem('googleClientId',  clientId);
+    if (groqKey) localStorage.setItem('groqApiKey', groqKey);
+    if (clientId) localStorage.setItem('googleClientId', clientId);
     showToast('Configurações salvas. Tudo pronto!');
 }

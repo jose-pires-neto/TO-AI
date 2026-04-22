@@ -124,6 +124,21 @@ export function renderTasks() {
 
     // Atualiza progress ring
     updateProgressRing(allPending.length, allCompleted.length);
+
+    // Inicializa SortableJS para Drag and Drop mobile-friendly
+    if (window.Sortable) {
+        if (pendingList._sortable) {
+            pendingList._sortable.destroy();
+        }
+        pendingList._sortable = window.Sortable.create(pendingList, {
+            animation: 250,
+            delay: 150, // Delay tátil para evitar drag acidental ao rolar a página no celular
+            delayOnTouchOnly: true,
+            onEnd: async function () {
+                await updateOrderInDB(pendingList);
+            }
+        });
+    }
 }
 
 function updateProgressRing(pendingCount, completedCount) {
@@ -148,6 +163,11 @@ function updateProgressRing(pendingCount, completedCount) {
 export function createTaskElement(task) {
     const div = document.createElement('div');
     div.className = `task-card-enter bg-white rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden transition-all hover:shadow-md pl-5 ${task.completed ? 'opacity-60' : ''}`;
+    
+    // Configurando ID da tarefa no card para o SortableJS
+    if (!task.completed) {
+        div.dataset.id = task.id;
+    }
 
     const accentColor = CATEGORY_ACCENTS[task.category] || CATEGORY_ACCENTS['Geral'];
     const accentBar = `<div class="task-accent" style="background:${accentColor}"></div>`;
@@ -263,4 +283,22 @@ export function showToast(message) {
         toast.style.opacity = '0';
         toast.style.transform = 'translate(-50%, -10px) scale(0.95)';
     }, 3500);
+}
+
+// ---------------------------------------------------------------------------
+// Persistência da Ordem (SortableJS)
+// ---------------------------------------------------------------------------
+async function updateOrderInDB(listElement) {
+    const { getTasksDB, saveTaskDB } = await import('./db.js');
+    const allTasks = await getTasksDB();
+    
+    const elements = [...listElement.children];
+    for (let i = 0; i < elements.length; i++) {
+        const id = elements[i].dataset.id;
+        const task = allTasks.find(t => t.id === id);
+        if (task) {
+            task.order = i;
+            await saveTaskDB(task);
+        }
+    }
 }

@@ -1,12 +1,6 @@
 {
-  "name": "Task.AI",
-  "short_name": "Task.AI",
-  "description": "Seu assistente pessoal e gerenciador de tarefas inteligente.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#F8F9FA",
-  "theme_color": "#4285F4",
-  "orientation": "portrait",
+  "name": "TASK.AI",
+  "short_name": "TASK.AI",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -20,5 +14,8 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "theme_color": "#473dff",
+  "background_color": "#473dff",
+  "display": "standalone"
 }
